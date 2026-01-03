@@ -14,10 +14,22 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            // Primer apellido
+            $table->string('first_last_name');
+            // Segundo apellido (puede ser null)
+            $table->string('second_last_name')->nullable();
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->string('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
+            $table->foreignId('id_dependencia')
+                ->nullable()
+                ->constrained('dependencias') // Asegúrate de que el nombre de la tabla sea 'id_dep_areas'
+                ->onDelete('set null');
+            $table->foreignId('id_dep_area')
+                ->nullable()
+                ->constrained('dependencia_areas') // Asegúrate de que el nombre de la tabla sea 'id_dep_areas'
+                ->onDelete('set null');
             $table->timestamps();
         });
 
