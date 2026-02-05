@@ -3,50 +3,53 @@
 namespace App\Http\Controllers;
 
 use App\Models\Componente;
+use App\Models\Ejercicio;
 use App\Models\Indicadores;
 use Illuminate\Http\Request;
 
 
 class ComponenteController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-$componentes = Componente::whereHas('indicadores', function ($query) {
-        // 1️⃣ Indicador activo
-        $query->where('activo', 1)
-            ->whereHas('programa', function ($qProg) {
-                // 2️⃣ Programa activo
-                $qProg->where('activo', 1)
-                    ->whereHas('ejercicio', function ($qEj) {
-                        // 3️⃣ Ejercicio activo
-                        $qEj->where('activo', 1);
-                    });
-            });
-    })
-    ->with([
-        'indicadores' => function ($query) {
-            $query->where('activo', 1)
-                ->with([
-                    'programa' => function ($qProg) {
-                        $qProg->where('activo', 1)
-                            ->with([
-                                'ejercicio' => function ($qEj) {
-                                    $qEj->where('activo', 1);
-                                }
-                            ]);
-                    }
-                ]);
-        }
-    ])
-    ->get();
-        return view('componentes.index', compact('componentes'));
+        // Capturamos el término de búsqueda enviado desde el formulario
+        $search = $request->input('search');
+
+        $componentes = Componente::with([
+            'programa:id,id_ejercicio,programa',
+            'indicadores:id,indicador'
+        ])
+            ->whereHas('programa.ejercicio', function ($q) {
+                $q->where('activo', 1);
+            })
+            ->whereHas('programa', fn($q) => $q->where('activo', 1))
+            ->whereHas('indicadores', fn($q) => $q->where('activo', 1))
+            ->when($search, function ($q) use ($search) {
+                $q->where('componente', 'like', "%{$search}%")
+                    ->orWhereHas(
+                        'indicadores',
+                        fn($qi) =>
+                        $qi->where('indicador', 'like', "%{$search}%")
+                    )
+                    ->orWhereHas(
+                        'programa',
+                        fn($qe) =>
+                        $qe->where('programa', 'like', "%{$search}%")
+                    );
+            })
+            ->get();
+
+        // Retornamos la vista con los componentes y el término de búsqueda (para mantenerlo en la barra)
+        return view('componentes.index', compact('componentes', 'search'));
     }
+
 
 
     public function create()
     {
+        $ejercicios = Ejercicio::where('activo', 1)->get();
         $indicadores = Indicadores::where('activo', 1)->get();
-        return view('componentes.create', compact('indicadores'));
+        return view('componentes.create', compact('ejercicios', 'indicadores'));
     }
 
 
@@ -54,6 +57,7 @@ $componentes = Componente::whereHas('indicadores', function ($query) {
     {
         $request->validate(
             [
+                'id_programa'  => 'required|exists:programas,id',
                 'id_indicador' => 'required|exists:indicadores,id',
                 'componente' => 'required|string|max:255',
                 'subcomponentes' => 'nullable|array'
@@ -70,7 +74,7 @@ $componentes = Componente::whereHas('indicadores', function ($query) {
                 'subcomponentes.array' => 'Los subcomponentes deben enviarse como una lista.'
             ]
         );
-        $data = $request->only('id_indicador', 'componente');
+        $data = $request->only('id_programa', 'id_indicador', 'componente');
         $data['tiene_subcomponentes'] = $request->boolean('tiene_subcomponentes');
         $data['subcomponentes'] = $data['tiene_subcomponentes']
             ? array_values(array_filter($request->subcomponentes ?? []))
@@ -83,8 +87,9 @@ $componentes = Componente::whereHas('indicadores', function ($query) {
 
     public function edit(Componente $componente)
     {
+        $ejercicios = Ejercicio::where('activo', 1)->get();
         $indicadores = Indicadores::all();
-        return view('componentes.edit', compact('componente', 'indicadores'));
+        return view('componentes.edit', compact('componente', 'ejercicios', 'indicadores'));
     }
 
 
@@ -93,6 +98,7 @@ $componentes = Componente::whereHas('indicadores', function ($query) {
 
         $request->validate(
             [
+                'id_programa'  => 'required|exists:programas,id',
                 'id_indicador' => 'required|exists:indicadores,id',
                 'componente' => 'required|string|max:255',
                 'subcomponentes' => 'nullable|array'
@@ -110,7 +116,7 @@ $componentes = Componente::whereHas('indicadores', function ($query) {
             ]
         );
 
-        $data = $request->only('id_indicador', 'componente');
+        $data = $request->only('id_programa', 'id_indicador', 'componente');
         $data['tiene_subcomponentes'] = $request->boolean('tiene_subcomponentes');
         $data['subcomponentes'] = $data['tiene_subcomponentes']
             ? array_values(array_filter($request->subcomponentes ?? []))

@@ -1,38 +1,88 @@
 <x-app-layout>
+
     <!--
-        CONTENEDOR PRINCIPAL
-        x-data inicializa el estado Alpine usando:
-        - indicadores: lista enviada desde el controlador
-        - id_indicador: valor actual (old() o BD)
-        - tieneSub: boolean real
-        - subcomponentes: array desde BD (cast JSON) u old()
+    =====================================================
+    CONTENEDOR PRINCIPAL
+    x-data maneja todo el estado del formulario:
+    - ejercicio, programa, indicador: IDs actuales
+    - programas / indicadores: combos dependientes
+    - tieneSub / subcomponentes: lógica existente
+    =====================================================
     -->
     <div
         class="max-w-4xl mx-auto p-6"
         x-data="{
-            indicadores: @js($indicadores),
+            /* =============================
+               IDs ACTUALES (old o BD)
+            ============================== */
+            ejercicio: '{{ old('id_ejercicio', $componente->programa->id_ejercicio) }}',
+            programa: '{{ old('id_programa',  $componente->programa->id_programa) }}',
+            indicador: '{{ old('id_indicador', $componente->indicadores->id_indicador) }}',
 
-            // 🔹 Indicador seleccionado (STRING para evitar conflictos)
-            id_indicador: '{{ old('id_indicador', $componente->id_indicador) }}',
+            /* =============================
+               LISTAS DINÁMICAS
+            ============================== */
+            programas: [],
+            indicadores: [],
 
-            // 🔹 Checkbox tiene subcomponentes
+            /* =============================
+               SUBCOMPONENTES
+            ============================== */
             tieneSub: {{ old(
                 'tiene_subcomponentes',
                 $componente->tiene_subcomponentes
             ) ? 'true' : 'false' }},
 
-            // 🔹 Subcomponentes desde BD (JSON) o formulario
             subcomponentes: @js(
                 old('subcomponentes', $componente->subcomponentes ?? [''])
-            )
-        }">
+            ),
 
-        <!-- TÍTULO -->
+            /* =============================
+               MÉTODOS
+            ============================== */
+            cargarProgramas() {
+                if (!this.ejercicio) {
+                    this.programas = [];
+                    this.programa = '';
+                    return;
+                }
+
+                fetch(`/api/programas/${this.ejercicio}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        this.programas = data;
+                        this.programa = '{{ old('id_programa', $componente->id_programa) }}';
+                        this.cargarIndicadores();
+                    });
+            },
+
+            cargarIndicadores() {
+                if (!this.programa) {
+                    this.indicadores = [];
+                    this.indicador = '';
+                    return;
+                }
+
+                fetch(`/api/indicadores/${this.programa}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        this.indicadores = data;
+                        this.indicador = '{{ old('id_indicador', $componente->id_indicador) }}';
+                    });
+            }
+        }"
+        x-init="cargarProgramas()">
+
+        <!-- =============================
+             TÍTULO
+        ============================== -->
         <h1 class="text-xl font-bold mb-6">
             Editar Componente
         </h1>
 
-        <!-- ERRORES DE VALIDACIÓN -->
+        <!-- =============================
+             ERRORES
+        ============================== -->
         @if ($errors->any())
         <div class="mb-6 bg-red-50 border border-red-200 p-4 rounded">
             <ul class="list-disc list-inside text-sm text-red-700">
@@ -43,7 +93,9 @@
         </div>
         @endif
 
-        <!-- FORMULARIO -->
+        <!-- =============================
+             FORMULARIO
+        ============================== -->
         <form
             method="POST"
             action="{{ route('componentes.update', $componente->id) }}"
@@ -51,10 +103,55 @@
             @csrf
             @method('PUT')
 
-            <!-- ===================================================== -->
-            <!-- INDICADOR                                              -->
-            <!-- Se maneja con :selected (NO x-model) para estabilidad -->
-            <!-- ===================================================== -->
+            <!-- ================================================= -->
+            <!-- EJERCICIO                                        -->
+            <!-- ================================================= -->
+            <div>
+                <label class="block text-sm font-medium mb-1">
+                    Ejercicio <span class="text-red-500">*</span>
+                </label>
+
+                <select
+                    name="id_ejercicio"
+                    x-model="ejercicio"
+                    @change="cargarProgramas()"
+                    class="w-full border p-2 rounded
+                           @error('id_ejercicio') border-red-500 @enderror"
+                    required>
+                    <option value="">Seleccione ejercicio</option>
+                    @foreach($ejercicios as $e)
+                    <option value="{{ $e->id }}">
+                        {{ $e->ejercicio }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- ================================================= -->
+            <!-- PROGRAMA                                         -->
+            <!-- ================================================= -->
+            <div>
+                <label class="block text-sm font-medium mb-1">
+                    Programa <span class="text-red-500">*</span>
+                </label>
+
+                <select
+                    name="id_programa"
+                    x-model="programa"
+                    @change="cargarIndicadores()"
+                    class="w-full border p-2 rounded
+                           @error('id_programa') border-red-500 @enderror"
+                    required>
+                    <option value="">Seleccione programa</option>
+                    <template x-for="p in programas" :key="p.id">
+                        <option :value="p.id" x-text="p.programa"></option>
+                    </template>
+                </select>
+            </div>
+
+            <!-- ================================================= -->
+            <!-- INDICADOR                                        -->
+            <!-- ================================================= -->
             <div>
                 <label class="block text-sm font-medium mb-1">
                     Indicador <span class="text-red-500">*</span>
@@ -62,29 +159,20 @@
 
                 <select
                     name="id_indicador"
+                    x-model="indicador"
                     class="w-full border p-2 rounded
                            @error('id_indicador') border-red-500 @enderror"
                     required>
-                    <option value="">Seleccione Indicador</option>
-
-                    <!-- Listado dinámico -->
+                    <option value="">Seleccione indicador</option>
                     <template x-for="i in indicadores" :key="i.id">
-                        <option
-                            :value="i.id"
-                            :selected="String(i.id) === String(id_indicador)"
-                            x-text="i.indicador">
-                        </option>
+                        <option :value="i.id" x-text="i.indicador"></option>
                     </template>
                 </select>
-
-                @error('id_indicador')
-                <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
-                @enderror
             </div>
 
-            <!-- ===================================================== -->
-            <!-- COMPONENTE                                             -->
-            <!-- ===================================================== -->
+            <!-- ================================================= -->
+            <!-- COMPONENTE                                       -->
+            <!-- ================================================= -->
             <div>
                 <label class="block text-sm font-medium mb-1">
                     Componente <span class="text-red-500">*</span>
@@ -97,35 +185,25 @@
                     class="w-full border p-2 rounded
                            @error('componente') border-red-500 @enderror"
                     required>
-
-                @error('componente')
-                <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
-                @enderror
             </div>
 
-            <!-- ===================================================== -->
-            <!-- CHECKBOX SUBCOMPONENTES                                -->
-            <!-- ===================================================== -->
+            <!-- ================================================= -->
+            <!-- SUBCOMPONENTES                                   -->
+            <!-- ================================================= -->
             <div class="flex items-center gap-2">
                 <input
                     type="checkbox"
                     name="tiene_subcomponentes"
                     value="1"
                     x-model="tieneSub">
-                <span class="text-sm">
-                    ¿Tiene subcomponentes?
-                </span>
+                <span class="text-sm">¿Tiene subcomponentes?</span>
             </div>
 
-            <!-- ===================================================== -->
-            <!-- SUBCOMPONENTES DINÁMICOS                                -->
-            <!-- ===================================================== -->
             <div x-show="tieneSub" x-transition>
                 <label class="block text-sm font-medium mb-2">
                     Subcomponentes
                 </label>
 
-                <!-- Lista -->
                 <template x-for="(sub, index) in subcomponentes" :key="index">
                     <div class="flex gap-2 mb-2">
                         <input
@@ -134,7 +212,6 @@
                             x-model="subcomponentes[index]"
                             class="w-full border p-2 rounded">
 
-                        <!-- Eliminar -->
                         <button
                             type="button"
                             class="text-red-600"
@@ -144,22 +221,21 @@
                     </div>
                 </template>
 
-                <!-- Agregar -->
                 <button
                     type="button"
-                    class="text-blue-600 text-sm mt-1"
+                    class="text-blue-600 text-sm"
                     @click="subcomponentes.push('')">
                     + Agregar subcomponente
                 </button>
             </div>
 
-            <!-- ===================================================== -->
-            <!-- BOTONES                                                -->
-            <!-- ===================================================== -->
+            <!-- ================================================= -->
+            <!-- BOTONES                                          -->
+            <!-- ================================================= -->
             <div class="flex justify-end gap-2 pt-4">
                 <a
                     href="{{ route('componentes.index') }}"
-                    class="border px-4 py-2 rounded">
+                    class="bg-red-600 text-white border px-4 py-2 rounded">
                     Cancelar
                 </a>
 

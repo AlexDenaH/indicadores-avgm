@@ -18,7 +18,9 @@
                 <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     Dashboard
                 </x-nav-link>
-
+                <x-nav-link :href="route('concentrados.index')" :active="request()->routeIs('concentrados.index')">
+                    Registro
+                </x-nav-link>
                 <!-- USUARIOS -->
                 @role('super-admin|administrador')
                 <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
@@ -42,7 +44,7 @@
                         Programas
                         <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M19 9l-7 7-7-7"/>
+                                d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
 
@@ -74,6 +76,10 @@
                             <x-dropdown-link :href="route('componentes.index')" :active="request()->routeIs('componentes.*')">
                                 Componentes
                             </x-dropdown-link>
+
+                            <x-dropdown-link :href="route('asignaciones.index')" :active="request()->routeIs('asignacion.*')">
+                                Asignación
+                            </x-dropdown-link>
                             @endrole
                         </div>
                     </div>
@@ -89,7 +95,7 @@
                         Catálogos
                         <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M19 9l-7 7-7-7"/>
+                                d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
 
@@ -116,8 +122,8 @@
                             {{ Auth::user()->name }}
                             <svg class="ml-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd"
-                                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                      clip-rule="evenodd"/>
+                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                    clip-rule="evenodd" />
                             </svg>
                         </button>
                     </x-slot>
@@ -142,11 +148,11 @@
                 <button @click="open = !open" class="p-2 text-gray-400 hover:bg-gray-100 rounded-md">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path :class="{ 'hidden': open }" stroke-width="2"
-                              stroke-linecap="round" stroke-linejoin="round"
-                              d="M4 6h16M4 12h16M4 18h16"/>
+                            stroke-linecap="round" stroke-linejoin="round"
+                            d="M4 6h16M4 12h16M4 18h16" />
                         <path :class="{ 'hidden': !open }" stroke-width="2"
-                              stroke-linecap="round" stroke-linejoin="round"
-                              d="M6 18L18 6M6 6l12 12"/>
+                            stroke-linecap="round" stroke-linejoin="round"
+                            d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
@@ -160,7 +166,7 @@
     <div x-show="open" class="sm:hidden">
 
         <x-responsive-nav-link :href="route('dashboard')">Dashboard</x-responsive-nav-link>
-
+        <x-responsive-nav-link :href="route('concentrados.index')">Registro</x-responsive-nav-link>
         @role('super-admin|administrador')
         <x-responsive-nav-link :href="route('users.index')">Usuarios</x-responsive-nav-link>
         <x-responsive-nav-link :href="route('periodos.index')">Periodos</x-responsive-nav-link>
@@ -177,6 +183,7 @@
         <x-responsive-nav-link :href="route('indicadores.index')">Indicadores</x-responsive-nav-link>
         <x-responsive-nav-link :href="route('nivel-detalle.index')">Detalle</x-responsive-nav-link>
         <x-responsive-nav-link :href="route('componentes.index')">Componentes</x-responsive-nav-link>
+        <x-responsive-nav-link :href="route('asignaciones.index')">Asignación</x-responsive-nav-link>
         @endrole
 
         @role('super-admin')

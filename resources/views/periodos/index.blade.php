@@ -10,6 +10,21 @@
             </a>
         </div>
 
+                <!-- Barra de búsqueda -->
+        <form method="GET" action="{{ route('periodos.index') }}" class="mb-4 flex gap-2">
+            <input 
+                type="text" 
+                name="search" 
+                value="{{ $search ?? '' }}" 
+                placeholder="Buscar programas o indicador..." 
+                class="border rounded px-3 py-2 flex-1"
+            >
+            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Buscar</button>
+            @if($search)
+            <a href="{{ route('periodos.index') }}" class="bg-gray-500 text-white px-4 py-2 rounded">Limpiar</a>
+            @endif
+        </form>
+
         <table class="w-full border text-sm">
             <thead class="bg-white">
                 <tr>

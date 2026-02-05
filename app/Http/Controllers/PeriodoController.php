@@ -12,10 +12,29 @@ use Illuminate\Validation\ValidationException;
 
 class PeriodoController extends Controller
 {
-        public function index()
+        public function index(Request $request)
         {
-                $periodos = Periodo::with(['ejercicio', 'programa', 'indicadores'])->get();
-                return view('periodos.index', compact('periodos'));
+
+                $search = $request->input('search');
+                $periodos = Periodo::with(['ejercicio', 'programa', 'indicadores'])
+                        ->whereHas('ejercicio', fn($q) => $q->where('activo', 1))
+                        ->whereHas('programa', fn($q) => $q->where('activo', 1))
+                        ->whereHas('indicadores', fn($q) => $q->where('activo', 1))
+                        ->when($search, function ($q) use ($search) {
+                                $q->where('periodo', 'like', "%{$search}%")
+                                        ->orWhereHas(
+                                                'indicadores',
+                                                fn($qi) =>
+                                                $qi->where('indicador', 'like', "%{$search}%")
+                                        )
+                                        ->orWhereHas(
+                                                'programa',
+                                                fn($qe) =>
+                                                $qe->where('programa', 'like', "%{$search}%")
+                                        );
+                        })
+                        ->get();
+                return view('periodos.index', compact('periodos', 'search'));
         }
 
 
